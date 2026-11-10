@@ -1,0 +1,183 @@
+{
+    "packages": [
+        {
+            "name": "wpsyntex/flags",
+            "version": "dev-main",
+            "version_normalized": "dev-main",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/polylang/flags.git",
+                "reference": "9e78fc1a05ab354ffe50094bacdcfe4b313b0bc0"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/polylang/flags/zipball/9e78fc1a05ab354ffe50094bacdcfe4b313b0bc0",
+                "reference": "9e78fc1a05ab354ffe50094bacdcfe4b313b0bc0",
+                "shasum": ""
+            },
+            "time": "2026-10-21T09:25:34+00:00",
+            "default-branch": true,
+            "type": "library",
+            "installation-source": "dist",
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "CC0-1.0"
+            ],
+            "description": "SVG flags for Polylang",
+            "homepage": "https://polylang.pro",
+            "support": {
+                "source": "https://github.com/polylang/flags/tree/main"
+            },
+            "install-path": "../wpsyntex/flags"
+        },
+        {
+            "name": "wpsyntex/polylang",
+            "version": "3.9.x-dev",
+            "version_normalized": "3.9.9999999.9999999-dev",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/polylang/polylang.git",
+                "reference": "d3443dd4fdb3d65d0c1f5b886b5838a4ac2eaf50"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/polylang/polylang/zipball/d3443dd4fdb3d65d0c1f5b886b5838a4ac2eaf50",
+                "reference": "d3443dd4fdb3d65d0c1f5b886b5838a4ac2eaf50",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=7.4",
+                "wpsyntex/flags": "dev-main"
+            },
+            "require-dev": {
+                "automattic/vipwpcs": "*",
+                "dealerdirect/phpcodesniffer-composer-installer": "*",
+                "mockery/mockery": "!=1.6.13",
+                "phpcompatibility/phpcompatibility-wp": "^3",
+                "rector/rector": "^2",
+                "wp-coding-standards/wpcs": "^3",
+                "wpsyntex/object-cache-annihilator": "dev-master",
+                "wpsyntex/polylang-phpstan": "^2.0",
+                "wpsyntex/wp-phpunit": "dev-master",
+                "yoast/wp-test-utils": "^1.0.0"
+            },
+            "time": "2026-10-21T15:16:38+00:00",
+            "type": "wordpress-plugin",
+            "installation-source": "dist",
+            "autoload": {
+                "psr-4": {
+                    "WP_Syntex\\Polylang\\Script\\": "bin/"
+                },
+                "classmap": [
+                    "src/"
+                ]
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "GPL-3.0-or-later"
+            ],
+            "description": "Making WordPress multilingual.",
+            "homepage": "https://polylang.pro",
+            "support": {
+                "issues": "https://github.com/polylang/polylang/issues",
+                "source": "https://github.com/polylang/polylang/tree/3.9.x"
+            },
+            "install-path": "../wpsyntex/polylang"
+        },
+        {
+            "name": "wpsyntex/updater",
+            "version": "2.0.0",
+            "version_normalized": "2.0.0.0",
+            "source": {
+                "type": "git",
+                "url": "git@github.com:polylang/updater.git",
+                "reference": "0b45f278f7eefb1a51e29c950f0b15e1a9005acb"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/polylang/updater/zipball/0b45f278f7eefb1a51e29c950f0b15e1a9005acb",
+                "reference": "0b45f278f7eefb1a51e29c950f0b15e1a9005acb",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=7.2"
+            },
+            "require-dev": {
+                "automattic/vipwpcs": "*",
+                "composer/composer": "*",
+                "dealerdirect/phpcodesniffer-composer-installer": "*",
+                "phpcompatibility/phpcompatibility-wp": "*",
+                "rector/rector": "^2",
+                "wp-coding-standards/wpcs": "*",
+                "wpsyntex/polylang-phpstan": "^2.0",
+                "wpsyntex/polylang-stubs": "dev-master",
+                "wpsyntex/wp-phpunit": "dev-master",
+                "yoast/wp-test-utils": "^1.0.0"
+            },
+            "time": "2026-10-16T09:18:05+00:00",
+            "type": "library",
+            "installation-source": "dist",
+            "autoload": {
+                "psr-4": {
+                    "WP_Syntex\\Lib\\": "lib/"
+                }
+            },
+            "autoload-dev": {
+                "classmap": [
+                    "tests/phpunit"
+                ],
+                "psr-4": {
+                    "UPDATER_NAMESPACE\\": "src/"
+                }
+            },
+            "scripts": {
+                "install-suite": [
+                    "bash vendor/wpsyntex/wp-phpunit/bin/install-wp-suite.sh"
+                ],
+                "install-suite-with-db": [
+                    "bash vendor/wpsyntex/wp-phpunit/bin/install-wp-suite.sh latest true"
+                ],
+                "install-tests": [
+                    "@install-suite"
+                ],
+                "install-tests-with-db": [
+                    "@install-suite-with-db"
+                ],
+                "test": [
+                    "vendor/bin/phpunit"
+                ],
+                "cs": [
+                    "vendor/bin/phpcs -d memory_limit=1024M"
+                ],
+                "cs-fix": [
+                    "vendor/bin/phpcbf -d memory_limit=1024M"
+                ],
+                "stan": [
+                    "vendor/bin/phpstan analyze --memory-limit=1500M"
+                ],
+                "rector-dry": [
+                    "vendor/bin/rector process --dry-run"
+                ],
+                "lint": [
+                    "@cs",
+                    "@stan",
+                    "@rector-dry"
+                ],
+                "rector": [
+                    "vendor/bin/rector process"
+                ]
+            },
+            "license": [
+                "GPL-3.0-or-later"
+            ],
+            "description": "Library to manage licenses and update plugins and translations",
+            "homepage": "https://polylang.pro",
+            "support": {
+                "source": "https://github.com/polylang/updater/tree/2.0"
+            },
+            "install-path": "../wpsyntex/updater"
+        }
+    ],
+    "dev": false,
+    "dev-package-names": []
+}

@@ -1,0 +1,70 @@
+import { createElement, RawHTML } from '@wordpress/element'
+import { withSelect } from '@wordpress/data'
+import { __ } from 'ct-i18n'
+
+import { useEntityProp } from '@wordpress/core-data'
+
+const strippedRenderedExcerpt = (content) => {
+	if (!content) return ''
+
+	const document = new window.DOMParser().parseFromString(
+		content,
+		'text/html'
+	)
+
+	return document.body.textContent || document.body.innerText || ''
+}
+
+const ExcerptPreview = ({
+	attributes: { excerpt_length },
+	postId,
+	postType,
+	fallback
+}) => {
+	const [
+		rawExcerpt,
+		setExcerpt,
+		{ rendered: renderedExcerpt, protected: isProtected } = {}
+	] = useEntityProp('postType', postType, 'excerpt', postId)
+
+	const [rawContent, setContent, { rendered: renderedContent } = {}] =
+		useEntityProp('postType', postType, 'content', postId)
+
+	const rawOrRenderedExcerpt = (
+		rawExcerpt ||
+		strippedRenderedExcerpt(renderedExcerpt) ||
+		strippedRenderedExcerpt(renderedContent)
+	).trim()
+
+	let trimmedExcerpt = !rawExcerpt
+		? rawOrRenderedExcerpt.split(' ', excerpt_length).join(' ')
+		: rawOrRenderedExcerpt
+
+	const maybeMore = trimmedExcerpt !== rawOrRenderedExcerpt ? '...' : ''
+
+	if (!postId) {
+		return 'Excerpt'
+	}
+
+	if (!trimmedExcerpt) {
+		return fallback
+	}
+
+	if (!rawExcerpt) {
+		return (
+			<div>
+				{trimmedExcerpt}
+				{maybeMore}
+			</div>
+		)
+	}
+
+	return (
+		<RawHTML>
+			{trimmedExcerpt}
+			{maybeMore}
+		</RawHTML>
+	)
+}
+
+export default ExcerptPreview

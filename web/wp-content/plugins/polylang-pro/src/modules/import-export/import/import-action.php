@@ -1,0 +1,354 @@
+<?php
+/**
+ * @package Polylang-Pro
+ */
+
+use WP_Syntex\Polylang\Capabilities\Capabilities;
+
+/**
+ * A class that handle the import action.
+ *
+ * @since 2.7
+ *
+ * Class PLL_Import_Action
+ */
+class PLL_Import_Action {
+
+	/**
+	 * Used to set import action name in forms.
+	 *
+	 * @var string
+	 */
+	const ACTION_NAME = 'pll_import';
+
+	/**
+	 * Used to create nonce for this action.
+	 *
+	 * @var string
+	 */
+	const NONCE_NAME = '_pll_import_nonce';
+
+	/**
+	 * Used to set import action value.
+	 *
+	 * @var string
+	 */
+	const ACTION_VALUE = 'import-translations';
+
+	/**
+	 * Used to query languages and translations.
+	 *
+	 * @var PLL_Model
+	 */
+	private $model;
+
+	/**
+	 * The various import types.
+	 *
+	 * @var PLL_Import_Object_Interface[]
+	 */
+	private $imports;
+
+	/**
+	 * Used to get the format of uploaded files.
+	 *
+	 * @var PLL_File_Format_Factory
+	 */
+	private $file_format_factory;
+
+	/**
+	 * PLL_Import_Action constructor.
+	 *
+	 * @since 2.7
+	 * @since 3.3 Added the 2nd parameter `$imports` to handle the various import types.
+	 * @since 3.6 Added the 3rd parameter `$file_format_factory`.
+	 *
+	 * @param PLL_Model                     $model               Instance of PLL_Model.
+	 * @param PLL_Import_Object_Interface[] $imports             The import types.
+	 * @param PLL_File_Format_Factory       $file_format_factory File factory.
+	 */
+	public function __construct( PLL_Model $model, array $imports, PLL_File_Format_Factory $file_format_factory ) {
+		$this->model               = $model;
+		$this->imports             = $imports;
+		$this->file_format_factory = $file_format_factory;
+	}
+
+	/**
+	 * Launches the import action.
+	 * Make sure to verify the current user's capabilities first.
+	 *
+	 * @since 3.6
+	 *
+	 * @return void
+	 *
+	 * @phpstan-return never
+	 */
+	public function import_action(): void {
+		$error = $this->upload();
+
+		if ( ! is_wp_error( $error ) ) {
+			$error = $this->process( $error );
+		}
+
+		pll_add_notice( $error );
+
+		PLL_Settings::redirect();
+	}
+
+	/**
+	 * Processes the imported objects retrieved from an import file.
+	 *
+	 * @since 3.6
+	 *
+	 * @param PLL_Import_File_Interface $import File importer.
+	 * @return WP_Error Error object.
+	 */
+	private function process( PLL_Import_File_Interface $import ): WP_Error {
+		$is_targeted_site_valid = $this->is_valid_site( $import );
+		if ( $is_targeted_site_valid->has_errors() ) {
+			return $is_targeted_site_valid;
+		}
+
+		$is_generator_valid = $this->is_valid_generator( $import );
+		if ( $is_generator_valid->has_errors() ) {
+			return $is_generator_valid;
+		}
+
+		$target_language = $this->get_target_language( $import );
+		if ( is_wp_error( $target_language ) ) {
+			return $target_language;
+		}
+
+		if ( ! Capabilities::get_user()->can_translate( $target_language ) ) {
+			return new WP_Error(
+				'pll_import_not_allowed',
+				sprintf(
+					/* translators: %s is a language name. */
+					__( 'Sorry, you are not allowed to import translations in %s.', 'polylang-pro' ),
+					$target_language->name
+				)
+			);
+		}
+
+		$error = new WP_Error();
+
+		$entry = $import->get_next_entry();
+		while ( ! empty( $entry ) ) {
+			if ( isset( $this->imports[ $entry['type'] ] ) ) {
+				$this->imports[ $entry['type'] ]->translate( $entry, $target_language );
+			}
+			$entry = $import->get_next_entry();
+		}
+
+		foreach ( $this->imports as $import_type_handler ) {
+			$error->merge_from( $import_type_handler->get_warning_notice() );
+			$error->merge_from( $import_type_handler->get_updated_notice() );
+
+			$imported_objects_ids = $import_type_handler->get_imported_object_ids();
+
+			if ( empty( $imported_objects_ids ) ) {
+				continue;
+			}
+
+			$import_type = $import_type_handler->get_type();
+
+			$import_type_handler->do_after_import_process( $imported_objects_ids, $target_language );
+
+			/**
+			 * Fires after objects have been imported.
+			 *
+			 * @since 3.3
+			 *
+			 * @param PLL_Language $target_language      The targeted language for import.
+			 * @param array        $imported_objects_ids The imported object ids of the import.
+			 */
+			do_action( "pll_after_{$import_type}_import", $target_language, $imported_objects_ids );
+		}
+
+		return $error;
+	}
+
+	/**
+	 * Checks if the current site corresponding on the targeted one in the import file.
+	 *
+	 * @since 3.3
+	 * @since 3.6 Visibility is now private.
+	 *
+	 * @param PLL_Import_File_Interface $import Import file.
+	 * @return WP_Error Error object, empty if valid.
+	 */
+	private function is_valid_site( PLL_Import_File_Interface $import ): WP_Error {
+		if ( $import->get_site_reference() !== get_site_url() ) {
+			return new WP_Error(
+				'pll_import_invalid_site',
+				/* translators: placeholders are URLs */
+				sprintf( __( 'Error: The site targeted in the imported file does not match the current site. Found: %1$s. Expected: %2$s.', 'polylang-pro' ), $import->get_site_reference(), get_site_url() )
+			);
+		}
+
+		return new WP_Error();
+	}
+
+	/**
+	 * Checks if the import file has been generated by Polylang Pro.
+	 *
+	 * @since 3.3
+	 * @since 3.6 Visibility is now private.
+	 *
+	 * @param PLL_Import_File_Interface $import Import file.
+	 * @return WP_Error Error object, empty if valid.
+	 */
+	private function is_valid_generator( PLL_Import_File_Interface $import ): WP_Error {
+		if ( $import->get_generator_name() !== PLL_Import_Export::APP_NAME ) {
+			return new WP_Error(
+				'pll_import_invalid_generator',
+				sprintf(
+					/* translators: %s is the plugin's name. */
+					__( 'Error: The imported file has not been generated by %s.', 'polylang-pro' ),
+					POLYLANG
+				)
+			);
+		}
+
+		return new WP_Error();
+	}
+
+	/**
+	 * Checks if the targeted language is valid for the import.
+	 *
+	 * @since 3.3
+	 * @since 3.6 Visibility is now private.
+	 *
+	 * @param PLL_Import_File_Interface $import Import file.
+	 * @return PLL_Language|WP_Error
+	 */
+	private function get_target_language( PLL_Import_File_Interface $import ) {
+
+		$locale = $import->get_target_language();
+
+		if ( false === $locale ) {
+			return new WP_Error(
+				'pll_import_no_target_language',
+				__( 'Error: No target languages have been provided in the imported file.', 'polylang-pro' )
+			);
+		}
+		$language = $this->model->get_language( $locale );
+		if ( ! $language ) {
+			return new WP_Error(
+				'pll_import_invalid_target_language',
+				__( "Error: You are trying to import a file in a language which doesn't exist on your site.", 'polylang-pro' )
+			);
+		}
+
+		return $language;
+	}
+
+	/**
+	 * Handles uploading a file and returns associated importer.
+	 *
+	 * @since 3.6
+	 *
+	 * @return PLL_Import_File_Interface|WP_Error An error object on failure, `PLL_Import_File_Interface` object on success.
+	 */
+	private function upload() {
+		check_admin_referer( self::ACTION_NAME, self::NONCE_NAME );
+
+		if (
+			! isset( $_FILES['importFileToUpload'] )
+			|| ! is_array( $_FILES['importFileToUpload'] )
+			|| ! isset( $_FILES['importFileToUpload']['error'] )
+			|| ! is_int( $_FILES['importFileToUpload']['error'] )
+		) {
+			// Should not happen.
+			return new WP_Error(
+				'pll_import_upload_failed',
+				__( 'Upload failed.', 'polylang-pro' )
+			);
+		}
+
+		$upload_error = $_FILES['importFileToUpload']['error']; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Validated as an integer above.
+
+		if ( UPLOAD_ERR_NO_FILE === $upload_error ) {
+			return new WP_Error(
+				'pll_import_no_upload',
+				__( 'Error: Please select a file to upload.', 'polylang-pro' )
+			);
+		}
+
+		if ( UPLOAD_ERR_OK !== $upload_error ) {
+			$upload_error_strings = array(
+				UPLOAD_ERR_INI_SIZE   => sprintf(
+					/* translators: 1: upload_max_filesize, 2: php.ini */
+					__( 'The uploaded file exceeds the %1$s directive in %2$s.', 'polylang-pro' ),
+					'upload_max_filesize',
+					'php.ini'
+				),
+				UPLOAD_ERR_FORM_SIZE  => sprintf(
+					/* translators: %s: MAX_FILE_SIZE */
+					__( 'The uploaded file exceeds the %s directive that was specified in the HTML form.', 'polylang-pro' ),
+					'MAX_FILE_SIZE'
+				),
+				UPLOAD_ERR_PARTIAL    => __( 'The uploaded file was only partially uploaded.', 'polylang-pro' ),
+				UPLOAD_ERR_NO_TMP_DIR => __( 'Missing a temporary folder.', 'polylang-pro' ),
+				UPLOAD_ERR_CANT_WRITE => __( 'Failed to write file to disk.', 'polylang-pro' ),
+				UPLOAD_ERR_EXTENSION  => __( 'File upload stopped by extension.', 'polylang-pro' ),
+			);
+
+			return new WP_Error(
+				'pll_import_upload_failed',
+				$upload_error_strings[ $upload_error ] ?? __( 'Upload failed.', 'polylang-pro' )
+			);
+		}
+
+		$file_to_upload = $_FILES['importFileToUpload']; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Array and error code already validated; remaining fields are checked below.
+
+		if (
+			empty( $file_to_upload['name'] )
+			|| ! is_string( $file_to_upload['name'] )
+			|| empty( $file_to_upload['tmp_name'] )
+			|| ! is_string( $file_to_upload['tmp_name'] )
+			|| ! isset( $file_to_upload['size'] )
+			|| ! is_numeric( $file_to_upload['size'] )
+		) {
+			// Should not happen.
+			return new WP_Error(
+				'pll_import_upload_failed',
+				__( 'Upload failed.', 'polylang-pro' )
+			);
+		}
+
+		/** @phpstan-var array{ name: string, tmp_name: string, size: int|float|numeric-string } $file_to_upload */
+		if ( (int) $file_to_upload['size'] <= 0 ) {
+			return new WP_Error(
+				'pll_import_upload_empty',
+				__( 'File is empty. Please upload something more substantial.', 'polylang-pro' )
+			);
+		}
+
+		$filename = sanitize_file_name( $file_to_upload['name'] );
+
+		if ( ! pll_is_uploaded_file( $file_to_upload['tmp_name'] ) ) {
+			return new WP_Error(
+				'pll_import_upload_failed',
+				__( 'Upload failed.', 'polylang-pro' )
+			);
+		}
+
+		$tmp_name = $file_to_upload['tmp_name'];
+
+		$file_format = $this->file_format_factory->from_file( $filename, $tmp_name );
+
+		if ( is_wp_error( $file_format ) ) {
+			return $file_format;
+		}
+
+		$import_file = $file_format->get_import();
+		$result      = $import_file->import_from_file( $tmp_name );
+
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+
+		return $import_file;
+	}
+}

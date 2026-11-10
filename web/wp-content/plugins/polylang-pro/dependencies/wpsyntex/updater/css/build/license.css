@@ -1,0 +1,157 @@
+/**
+ * @package Polylang Updater
+ */
+
+/* Settings */
+#pllu-licenses-table label {
+	font-size: 1em;
+	font-weight: 600;
+}
+
+/* Keep the input and its button vertically centered on the same line. */
+#pllu-licenses-table input,
+#pllu-licenses-table .button {
+	vertical-align: middle;
+}
+
+/* Keep license labels aligned with the input when a status message is displayed below it. */
+#pllu-licenses-table td {
+	padding: 10px 9px;
+	vertical-align: baseline;
+}
+
+/* Keep license spinners independent from styles targeting generic spinners. */
+#pllu-licenses-table .pllu-license-spinner {
+	visibility: hidden;
+	float: none;
+	margin: 0;
+	margin-inline-start: 5px;
+	vertical-align: middle;
+}
+
+#pllu-licenses-table .pllu-license-spinner.is-active {
+	visibility: visible;
+}
+
+/* License skeleton */
+#pllu-licenses-table .pllu-license-skeleton {
+	display: inline-block;
+	height: 2em;
+	border-radius: 2px;
+	vertical-align: middle;
+	background-color: #c3c4c7;
+	animation: pllu-license-skeleton-pulse 1.2s ease-in-out infinite;
+}
+
+#pllu-licenses-table .pllu-license-skeleton-label {
+	width: 8em;
+	height: 1.2em;
+}
+
+#pllu-licenses-table .pllu-license-skeleton-input {
+	width: 20em;
+}
+
+#pllu-licenses-table .pllu-license-skeleton-button {
+	width: 6em;
+	margin-inline-start: 8px;
+}
+
+@keyframes pllu-license-skeleton-pulse {
+
+	0%,
+	100% {
+		opacity: 0.45;
+	}
+
+	50% {
+		opacity: 0.9;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+	#pllu-licenses-table .pllu-license-skeleton {
+		animation: none;
+	}
+}
+
+#pllu-licenses-table .license-valid td p {
+	min-width: 35em;
+}
+
+#pllu-licenses-table .pllu-deactivate-license {
+	margin: 0 0 0 20px;
+}
+
+.rtl #pllu-licenses-table .pllu-deactivate-license {
+	margin: 0 10px 0 0;
+}
+
+/* Wizard */
+.pll-wizard #pllu-licenses-table {
+	display: block;
+}
+
+/* Columns: the label hugs its content, 1fr gives the rest of the row all the space left. */
+.pll-wizard #pllu-licenses-table tbody {
+	display: grid;
+	grid-template-columns: max-content 1fr;
+	align-items: baseline;
+	gap: 18px 16px;
+}
+
+/* Lift both cells of each row into the grid above. */
+.pll-wizard #pllu-licenses-table tr {
+	display: contents;
+}
+
+.pll-wizard #pllu-licenses-table td {
+	padding: 0;
+}
+
+/* The cell lays out its own content, so adding an element there doesn't shift the grid. */
+.pll-wizard #pllu-licenses-table td + td {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+}
+
+.pll-wizard #pllu-licenses-table td + td input {
+	flex: 1;
+	min-width: 0; /* shrink inside the row instead of overflowing */
+}
+
+.pll-wizard #pllu-licenses-table td + td .button {
+	min-width: 7.5em;
+	margin: 0;
+}
+
+.pll-wizard #pllu-licenses-table td + td .pllu-license-spinner {
+	margin: 0;
+}
+
+/* Message on its own line under the input; cancels the settings 35em. */
+.pll-wizard #pllu-licenses-table td + td p {
+	flex-basis: 100%;
+	min-width: 0;
+	margin: 0;
+}
+
+@media screen and (max-width: 782px) {
+
+	/* Settings */
+	#wpbody-content .pll-settings #pllu-licenses-table td {
+		display: block;
+	}
+
+	#pllu-licenses-table .pllu-deactivate-license {
+		margin: 10px 0 5px;
+	}
+
+	/* Wizard */
+	.pll-wizard #pllu-licenses-table tbody {
+		grid-template-columns: 1fr;
+	}
+}

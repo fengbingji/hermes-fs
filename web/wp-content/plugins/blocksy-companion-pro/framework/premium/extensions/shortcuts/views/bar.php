@@ -1,0 +1,563 @@
+<?php
+// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound, VariableAnalysis.CodeAnalysis.VariableAnalysis.UndefinedVariable -- view scope, variables come from blocksy_companion_render_view()
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+$class = 'ct-shortcuts-bar';
+
+if ( ! isset( $only_item ) ) {
+	$only_item = null;
+}
+
+$items = blocksy_companion_theme_functions()->blocksy_get_theme_mod(
+	'shortcuts_bar_items',
+	array(
+		array(
+			'id'      => 'home',
+			'enabled' => true,
+			'label'   => __( 'Home', 'blocksy-companion' ),
+			'icon'    => array(
+				'icon' => 'blc blc-home',
+			),
+		),
+
+		array(
+			'id'      => 'phone',
+			'enabled' => true,
+			'label'   => __( 'Phone', 'blocksy-companion' ),
+			'icon'    => array(
+				'icon' => 'blc blc-phone',
+			),
+		),
+	)
+);
+
+$items_output = array();
+
+$icons = array(
+	'home'           => 'blc blc-home',
+	'phone'          => 'blc blc-phone',
+	'email'          => 'blc blc-email',
+	'scroll_top'     => 'blc blc-arrow-up-circle',
+	'wishlist'       => 'blc blc-heart',
+	'waitlist'       => 'blc blc-file',
+	'filters_canvas' => 'blc blc-filter',
+	'compare'        => 'blc blc-compare',
+	'cart'           => 'blc blc-cart',
+	'shop'           => 'blc blc-shop',
+	'custom_link'    => '',
+);
+
+$label_defaults = array(
+	'home'           => __( 'Home', 'blocksy-companion' ),
+	'phone'          => __( 'Phone', 'blocksy-companion' ),
+	'email'          => __( 'Email', 'blocksy-companion' ),
+	'scroll_top'     => __( 'Scroll Top', 'blocksy-companion' ),
+	'cart'           => __( 'Cart', 'blocksy-companion' ),
+	'shop'           => __( 'Products', 'blocksy-companion' ),
+	'wishlist'       => __( 'Wishlist', 'blocksy-companion' ),
+	'waitlist'       => __( 'Waitlist', 'blocksy-companion' ),
+	'filters_canvas' => __( 'Filters', 'blocksy-companion' ),
+	'compare'        => __( 'Compare', 'blocksy-companion' ),
+	'custom_link'    => 'Label',
+);
+
+foreach ( $items as $single_item ) {
+	if ( $only_item && $single_item['id'] !== $only_item ) {
+		continue;
+	}
+
+	if ( isset( $single_item['enabled'] ) && ! $single_item['enabled'] ) {
+		continue;
+	}
+
+	if (
+		! class_exists( 'WooCommerce' )
+		&&
+		(
+			'cart' === $single_item['id']
+			||
+			'shop' === $single_item['id']
+			||
+			'wishlist' === $single_item['id']
+			||
+			'waitlist' === $single_item['id']
+			||
+			'compare' === $single_item['id']
+			||
+			'filters_canvas' === $single_item['id']
+		)
+	) {
+		continue;
+	}
+
+	$shortcut_attrs = array();
+
+	$item_i18n_id_prefix = 'shortcuts:' . $single_item['id'];
+
+	if ( 'custom_link' === $single_item['id'] && isset( $single_item['__id'] ) ) {
+		$item_i18n_id_prefix = 'shortcuts:' . $single_item['__id'];
+	}
+
+	if ( ! isset( $label_defaults[ $single_item['id'] ] ) ) {
+		continue;
+	}
+
+	$link  = '#';
+	$label = blocksy_companion_sanitize_html_for_display(
+		blocksy_translate_dynamic(
+			blocksy_companion_akg(
+				'label',
+				$single_item,
+				$label_defaults[ $single_item['id'] ]
+			),
+			$item_i18n_id_prefix . ':label'
+		)
+	);
+
+	$icon = blocksy_companion_get_icon(
+		array(
+			'icon_descriptor' => blocksy_companion_akg(
+				'icon',
+				$single_item,
+				array(
+					'icon' => $icons[ $single_item['id'] ],
+				)
+			),
+			'icon_container'  => false,
+		)
+	);
+
+	if ( isset( $single_item['link'] ) ) {
+		$link = blocksy_companion_akg( 'link', $single_item, '' );
+	}
+
+	if ( 'home' === $single_item['id'] ) {
+		$link = get_home_url();
+	}
+
+	if ( 'phone' === $single_item['id'] ) {
+		if ( ! empty( $single_item['phone_number'] ) ) {
+			$link = 'tel:' . $single_item['phone_number'];
+		}
+	}
+
+	if ( 'email' === $single_item['id'] ) {
+		if ( ! empty( $single_item['email'] ) ) {
+			$link = 'mailto:' . $single_item['email'];
+		}
+	}
+
+	if ( 'cart' === $single_item['id'] && function_exists( 'wc_get_cart_url' ) ) {
+		$link = wc_get_cart_url();
+	}
+
+	if ( 'shop' === $single_item['id'] && function_exists( 'wc_get_cart_url' ) ) {
+		$link = get_permalink( wc_get_page_id( 'shop' ) );
+	}
+
+	if (
+		'wishlist' === $single_item['id']
+		&&
+		function_exists( 'wc_get_endpoint_url' )
+		&&
+		function_exists( 'blocksy_companion_get_wish_list_slug' )
+	) {
+		$link = wc_get_endpoint_url(
+			blocksy_companion_get_wish_list_slug(),
+			'',
+			get_permalink( get_option( 'woocommerce_myaccount_page_id' ) )
+		);
+
+		if (
+			! is_user_logged_in()
+			&&
+			blocksy_companion_theme_functions()->blocksy_get_theme_mod( 'product_wishlist_display_for', 'logged_users' ) === 'all_users'
+		) {
+			$maybe_page_id = blocksy_companion_theme_functions()->blocksy_get_theme_mod( 'woocommerce_wish_list_page' );
+
+			if ( ! empty( $maybe_page_id ) ) {
+				$maybe_permalink = get_permalink( $maybe_page_id );
+
+				if ( $maybe_permalink ) {
+					$link = $maybe_permalink;
+				}
+			}
+		}
+	}
+
+	if (
+		'waitlist' === $single_item['id']
+		&&
+		function_exists( 'wc_get_endpoint_url' )
+		&&
+		function_exists( 'blocksy_companion_get_waitlist_slug' )
+	) {
+		$link = wc_get_endpoint_url(
+			blocksy_companion_get_waitlist_slug(),
+			'',
+			get_permalink( get_option( 'woocommerce_myaccount_page_id' ) )
+		);
+	}
+
+	if ( 'filters_canvas' === $single_item['id'] ) {
+		if (
+			(
+				! is_shop()
+				&&
+				! is_product_category()
+				&&
+				! is_product_tag()
+				&&
+				! is_product_taxonomy()
+			)
+			||
+			blocksy_companion_theme_functions()->blocksy_get_theme_mod( 'has_woo_offcanvas_filter', 'no' ) === 'no'
+		) {
+			continue;
+		}
+
+		$link = '#';
+
+		$aria_expanded = blocksy_companion_theme_functions()->blocksy_get_theme_mod(
+			'filter_panel_behaviour',
+			'no'
+		) === 'no' ? 'false' : 'true';
+
+		$filter_ajax_reveal = blocksy_companion_theme_functions()->blocksy_get_theme_mod( 'filter_ajax_reveal', 'no' );
+
+		if ( blocksy_companion_theme_functions()->blocksy_get_theme_mod(
+			'filter_panel_behaviour',
+			'no'
+		) === 'yes' ) {
+			$filter_ajax_reveal = 'no';
+		}
+
+		$has_filter_ajax_reveal = 'yes' === $filter_ajax_reveal;
+
+		if ( blocksy_companion_theme_functions()->blocksy_get_theme_mod( 'woocommerce_filter_type', 'type-1' ) === 'type-2' ) {
+			$shortcut_attrs = array(
+				'class'          => 'ct-shortcut-toggle-filter-panel' . ( ! $has_filter_ajax_reveal ? ' ct-expandable-trigger' : '' ),
+				'data-behaviour' => 'drop-down',
+				'data-target'    => '#woo-filters-panel',
+				'aria-expanded'  => 'yes' === $has_filter_ajax_reveal ? 'false' : $aria_expanded,
+				'role'           => 'button',
+			);
+		} else {
+			$shortcut_attrs = array(
+				'class'             => 'ct-shortcut-toggle-filter-panel ct-offcanvas-trigger',
+				'data-toggle-panel' => '#woo-filters-panel',
+			);
+		}
+	}
+
+	if (
+		'compare' === $single_item['id']
+		&&
+		function_exists( 'wc_get_endpoint_url' )
+	) {
+		$link = '#';
+
+		$maybe_page_id = blocksy_companion_theme_functions()->blocksy_get_theme_mod( 'woocommerce_compare_page' );
+
+		if ( ! empty( $maybe_page_id ) ) {
+			$maybe_permalink = get_permalink( $maybe_page_id );
+
+			if ( $maybe_permalink ) {
+				$link = $maybe_permalink;
+			}
+		}
+
+		if ( blocksy_companion_theme_functions()->blocksy_get_theme_mod( 'compare_table_placement', 'modal' ) === 'modal' ) {
+			$shortcut_attrs = array(
+				'data-behaviour' => blocksy_companion_theme_functions()->blocksy_get_theme_mod( 'compare_table_placement', 'modal' ),
+			);
+		}
+	}
+
+	if ( 'search' === $single_item['id'] ) {
+		// TODO: target search modal
+	}
+
+	$link_args = array_merge(
+		array(
+			'href'          => esc_url(
+				blocksy_translate_dynamic(
+					apply_filters( 'wpml_permalink', do_shortcode( $link ) ), // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML filter
+					$item_i18n_id_prefix . ':link'
+				)
+			),
+			'data-shortcut' => 'custom_link' !== $single_item['id'] ? $single_item['id'] : $single_item['id'] . ':' . substr( $single_item['__id'], 0, 1 ),
+			'data-label'    => blocksy_companion_theme_functions()->blocksy_get_theme_mod( 'shortcuts_label_position', 'bottom' ),
+			'aria-label'    => $label,
+		),
+		$shortcut_attrs
+	);
+
+	if ( blocksy_companion_akg( 'link_target', $single_item, 'no' ) === 'yes' ) {
+		$link_args['target'] = '_blank';
+	}
+
+	if ( blocksy_companion_akg( 'link_nofollow', $single_item, 'no' ) === 'yes' ) {
+		$link_args['rel'] = 'nofollow';
+	}
+
+	$custom_class = blocksy_companion_akg( 'class', $single_item, '' );
+
+	if ( ! empty( $custom_class ) ) {
+		if ( ! isset( $link_args['class'] ) ) {
+			$link_args['class'] = '';
+		}
+
+		$link_args['class'] = trim( $link_args['class'] . ' ' . $custom_class );
+	}
+
+	$count_output = '';
+
+	if ( 'cart' === $single_item['id'] ) {
+		$current_count = 0;
+
+		if ( WC()->cart ) {
+			$current_count = WC()->cart->get_cart_contents_count();
+		}
+
+		$count_output = blocksy_companion_html_tag(
+			'span',
+			array(
+				'class'      => 'ct-dynamic-count-cart',
+				'data-count' => $current_count,
+			),
+			$current_count
+		);
+	}
+
+	if (
+		'wishlist' === $single_item['id']
+		&&
+		blocksy_companion_get_ext( 'woocommerce-extra' )
+		&&
+		blocksy_companion_get_ext( 'woocommerce-extra' )->get_wish_list()
+	) {
+		$current_count = count(
+			blocksy_companion_get_ext( 'woocommerce-extra' )->get_wish_list()->get_current_wish_list()
+		);
+
+		$count_output = blocksy_companion_html_tag(
+			'span',
+			array(
+				'class'       => 'ct-dynamic-count-wishlist',
+				'data-count'  => $current_count,
+				'aria-hidden' => 'true',
+			),
+			$current_count
+		);
+	}
+
+	if (
+		'compare' === $single_item['id']
+		&&
+		blocksy_companion_get_ext( 'woocommerce-extra' )
+		&&
+		blocksy_companion_get_ext( 'woocommerce-extra' )->get_compare()
+	) {
+		$current_count = count(
+			blocksy_companion_get_ext( 'woocommerce-extra' )->get_compare()->get_current_compare_list()
+		);
+
+		$count_output = blocksy_companion_html_tag(
+			'span',
+			array(
+				'class'       => 'ct-dynamic-count-compare',
+				'data-count'  => $current_count,
+				'aria-hidden' => 'true',
+			),
+			$current_count
+		);
+	}
+
+	if ( ! empty( $link ) ) {
+		$label_class = 'ct-label';
+
+		$label_class .= ' ' . blocksy_visibility_classes(
+			blocksy_companion_theme_functions()->blocksy_get_theme_mod(
+				'shortcuts_label_visibility',
+				array(
+					'desktop' => false,
+					'tablet'  => false,
+					'mobile'  => false,
+				)
+			)
+		);
+
+		$additional_output = '';
+
+		if ( ! empty( $count_output . $icon ) ) {
+			$additional_output = '<span class="ct-icon-container">' . $count_output . $icon . '</span>';
+		}
+
+		$tooltip_visibility = blocksy_companion_theme_functions()->blocksy_get_theme_mod(
+			'shortcuts_tooltip_visibility',
+			array(
+				'desktop' => false,
+				'tablet'  => false,
+				'mobile'  => false,
+			)
+		);
+
+		$tooltip_visibility = blocksy_expand_responsive_value( $tooltip_visibility );
+
+		$tooltip_class = blocksy_visibility_classes(
+			$tooltip_visibility
+		);
+
+		$tooltip_html = '';
+
+		if (
+			$tooltip_visibility['desktop']
+			||
+			$tooltip_visibility['tablet']
+			||
+			$tooltip_visibility['mobile']
+		) {
+			$tooltip_html = blocksy_companion_html_tag(
+				'span',
+				array(
+					'class' => 'ct-tooltip ' . $tooltip_class,
+				),
+				do_shortcode( $label )
+			);
+		}
+
+		$item_visibility_class = blocksy_visibility_classes(
+			blocksy_companion_akg(
+				'item_visibility',
+				$single_item,
+				array(
+					'desktop' => true,
+					'tablet'  => true,
+					'mobile'  => true,
+				)
+			)
+		);
+
+		$item_wrappers_args = array();
+
+		if ( ! empty( $item_visibility_class ) ) {
+			$item_wrappers_args['class'] = trim( $item_visibility_class );
+		}
+
+		$output = blocksy_companion_html_tag(
+			'li',
+			$item_wrappers_args,
+			blocksy_companion_html_tag(
+				'a',
+				$link_args,
+				$tooltip_html .
+				'<span class="' . trim( $label_class ) . '">' . do_shortcode( $label ) . '</span>' . $additional_output
+			)
+		);
+
+		if ( 'compare' === $single_item['id'] ) {
+			$output = blocksy_companion_html_tag(
+				'li',
+				$item_wrappers_args,
+				blocksy_action_button(
+					array(
+						'button_html_attributes' => $link_args,
+						'icon'                   => $count_output . $icon,
+						'icon_position'          => 'end',
+						'content'                => $tooltip_html . blocksy_companion_html_tag(
+							'span',
+							array(
+								'class' => trim( $label_class ),
+							),
+							do_shortcode( $label )
+						),
+					)
+				)
+			);
+		}
+
+		if ( 'filters_canvas' === $single_item['id'] ) {
+			$output = blocksy_companion_html_tag(
+				'li',
+				$item_wrappers_args,
+				blocksy_action_button(
+					array(
+						'button_html_attributes' => $link_args,
+						'icon'                   => $icon,
+						'icon_position'          => 'end',
+						'content'                => $tooltip_html . blocksy_companion_html_tag(
+							'span',
+							array(
+								'class' => trim( $label_class ),
+							),
+							do_shortcode( $label )
+						),
+					)
+				)
+			);
+		}
+
+		$items_output[] = $output;
+	}
+}
+
+/**
+ * Filters the rendered shortcuts bar items.
+ *
+ * @since 1.8.9.1
+ *
+ * @param string[] $items_output List of rendered item HTML strings.
+ */
+$items_output = apply_filters(
+	'blocksy:pro:ext:shortcuts:bar-items',
+	$items_output
+);
+
+if ( empty( $items_output ) ) {
+	return;
+}
+
+$class .= ' ' . blocksy_visibility_classes(
+	blocksy_companion_theme_functions()->blocksy_get_theme_mod(
+		'shortcuts_bar_visibility',
+		array(
+			'desktop' => true,
+			'tablet'  => true,
+			'mobile'  => true,
+		)
+	)
+);
+
+if ( $only_item ) {
+	// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+	echo implode( ' ', $items_output );
+	return;
+}
+
+$nav_attrs = array(
+	'class'      => trim( $class ),
+	'data-type'  => blocksy_companion_theme_functions()->blocksy_get_theme_mod( 'shortcuts_bar_type', 'type-1' ),
+	'aria-label' => __( 'Shortcuts bar', 'blocksy-companion' ),
+);
+
+if ( is_customize_preview() ) {
+	$nav_attrs['data-shortcut']          = 'border';
+	$nav_attrs['data-shortcut-location'] = 'shortcuts_ext';
+}
+
+?>
+
+<nav <?php blocksy_companion_attr_to_html_e( $nav_attrs ); ?>>
+
+	<ul class="ct-shortcuts-bar-items">
+		<?php
+			// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+			echo implode( ' ', $items_output );
+		?>
+	</ul>
+
+</nav>

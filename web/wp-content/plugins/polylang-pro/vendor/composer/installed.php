@@ -1,0 +1,52 @@
+<?php return array(
+    'root' => array(
+        'name' => 'wpsyntex/polylang-pro',
+        'pretty_version' => '3.9.x-dev',
+        'version' => '3.9.9999999.9999999-dev',
+        'reference' => '180ef2c159e6c7d6ce9aea2f90e63762e08208b6',
+        'type' => 'wordpress-plugin',
+        'install_path' => __DIR__ . '/../../',
+        'aliases' => array(),
+        'dev' => false,
+    ),
+    'versions' => array(
+        'wpsyntex/flags' => array(
+            'pretty_version' => 'dev-main',
+            'version' => 'dev-main',
+            'reference' => '9e78fc1a05ab354ffe50094bacdcfe4b313b0bc0',
+            'type' => 'library',
+            'install_path' => __DIR__ . '/../wpsyntex/flags',
+            'aliases' => array(
+                0 => '9999999-dev',
+            ),
+            'dev_requirement' => false,
+        ),
+        'wpsyntex/polylang' => array(
+            'pretty_version' => '3.9.x-dev',
+            'version' => '3.9.9999999.9999999-dev',
+            'reference' => 'd3443dd4fdb3d65d0c1f5b886b5838a4ac2eaf50',
+            'type' => 'wordpress-plugin',
+            'install_path' => __DIR__ . '/../wpsyntex/polylang',
+            'aliases' => array(),
+            'dev_requirement' => false,
+        ),
+        'wpsyntex/polylang-pro' => array(
+            'pretty_version' => '3.9.x-dev',
+            'version' => '3.9.9999999.9999999-dev',
+            'reference' => '180ef2c159e6c7d6ce9aea2f90e63762e08208b6',
+            'type' => 'wordpress-plugin',
+            'install_path' => __DIR__ . '/../../',
+            'aliases' => array(),
+            'dev_requirement' => false,
+        ),
+        'wpsyntex/updater' => array(
+            'pretty_version' => '2.0.0',
+            'version' => '2.0.0.0',
+            'reference' => '0b45f278f7eefb1a51e29c950f0b15e1a9005acb',
+            'type' => 'library',
+            'install_path' => __DIR__ . '/../wpsyntex/updater',
+            'aliases' => array(),
+            'dev_requirement' => false,
+        ),
+    ),
+);
